@@ -14,7 +14,7 @@ jobs:
           echo "NDK=$PWD/android-ndk-r25c" >> $GITHUB_ENV
       - name: Prepare jni
         run: |
-          ZIP=$(ls ffkiller*.zip 2>/dev/null | head -1); echo "zip: [$ZIP]"
+          ZIP=$(ls fffkiller*.zip 2>/dev/null | head -1); echo "zip: [$ZIP]"
           if [ -n "$ZIP" ]; then rm -rf jni tmp_jni && mkdir -p jni tmp_jni && unzip -o "$ZIP" -d tmp_jni && echo "--- tmp:" && ls tmp_jni && ( [ -d tmp_jni/jni ] && cp -v tmp_jni/jni/* jni/ || cp -v tmp_jni/* jni/ ) && rm -rf tmp_jni; else echo "NO ZIP FOUND"; ls; fi
           echo "--- jni:" && ls jni
           test -f jni/Android.mk || (echo "ANDROID.MK MISSING"; exit 1)
