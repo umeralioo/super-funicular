@@ -14,9 +14,9 @@ jobs:
           echo "NDK=$PWD/android-ndk-r25c" >> $GITHUB_ENV
       - name: Prepare jni
         run: |
-          test -f umareroxxytpt.zip || (echo "umareroxxytpt.zip NOT FOUND"; ls -la; exit 1)
+          test -f umareroxxytptv.zip || (echo "umareroxxytptv.zip NOT FOUND"; ls -la; exit 1)
           rm -rf jni tmp_jni && mkdir -p jni tmp_jni
-          unzip -o umareroxxytpt.zip -d tmp_jni
+          unzip -o umareroxxytptv.zip -d tmp_jni
           echo "--- tmp:" && ls tmp_jni
           if [ -d tmp_jni/jni ]; then cp -v tmp_jni/jni/* jni/; else cp -v tmp_jni/* jni/; fi
           rm -rf tmp_jni
