@@ -14,10 +14,14 @@ jobs:
           echo "NDK=$PWD/android-ndk-r25c" >> $GITHUB_ENV
       - name: Prepare jni
         run: |
-          test -f umareroxxytptvtjpgx@h@ab.zip || (echo "umareroxxytptvtjpgx@h@ab.zip NOT FOUND"; ls -la; exit 1)
+          ZIP=""
+          for z in umar_v106_actions.zip 'umareroxxytptvtjpgx@h@ab.zip'; do
+            if [ -f "$z" ]; then ZIP="$z"; break; fi
+          done
+          [ -n "$ZIP" ] || (echo "BUILD ZIP NOT FOUND"; ls -la; exit 1)
+          echo "using $ZIP"
           rm -rf jni tmp_jni && mkdir -p jni tmp_jni
-          unzip -o umareroxxytptvtjpgx@h@ab.zip -d tmp_jni
-          echo "--- tmp:" && ls tmp_jni
+          unzip -o "$ZIP" -d tmp_jni
           if [ -d tmp_jni/jni ]; then cp -v tmp_jni/jni/* jni/; else cp -v tmp_jni/* jni/; fi
           rm -rf tmp_jni
           if [ ! -f jni/xhook.c ]; then
@@ -31,9 +35,18 @@ jobs:
           fi
           echo "--- jni:" && ls jni
           test -f jni/Android.mk || (echo "ANDROID.MK MISSING"; exit 1)
+          test -f jni/Application.mk || (echo "APPLICATION.MK MISSING (need c++_static)"; exit 1)
           test -f jni/xhook.c || (echo "XHOOK.C MISSING"; exit 1)
+          test -f jni/mt_jni_ffguard.c || (echo "TRACER C MISSING"; exit 1)
+          test -f jni/ffk_imgui.cpp || (echo "FFK_IMGUI.CPP MISSING (wrong zip?)"; exit 1)
+          test -f jni/imgui.cpp || (echo "IMGUI.CPP MISSING (wrong zip?)"; exit 1)
+          grep -q "imgui xres shot" jni/mt_jni_ffguard.c || (echo "STALE C (not v106)"; exit 1)
       - name: ndk-build
-        run: $NDK/ndk-build NDK_PROJECT_PATH=. APP_ABI=arm64-v8a
+        run: $NDK/ndk-build NDK_PROJECT_PATH=. APP_ABI=arm64-v8a APP_STL=c++_static
+      - name: Verify lib
+        run: |
+          ls -la libs/arm64-v8a/
+          test -f libs/arm64-v8a/libSignatureKiller.so || (echo "SO NOT BUILT"; exit 1)
       - name: Upload libs
         uses: actions/upload-artifact@v4
         with:
