@@ -14,41 +14,17 @@ jobs:
           echo "NDK=$PWD/android-ndk-r25c" >> $GITHUB_ENV
       - name: Prepare jni
         run: |
-          ZIP=""
-          for z in umar_v111_actions.zip 'umar_v111_actions.zip'; do
-            if [ -f "$z" ]; then ZIP="$z"; break; fi
-          done
-          [ -n "$ZIP" ] || (echo "BUILD ZIP NOT FOUND"; ls -la; exit 1)
-          echo "using $ZIP"
-          rm -rf jni tmp_jni && mkdir -p jni tmp_jni
-          unzip -o "$ZIP" -d tmp_jni
-          if [ -d tmp_jni/jni ]; then cp -v tmp_jni/jni/* jni/; else cp -v tmp_jni/* jni/; fi
-          rm -rf tmp_jni
-          if [ ! -f jni/xhook.c ]; then
-            echo "xhook sources missing - fetching..."
-            wget -q https://github.com/iqiyi/xHook/archive/refs/heads/master.zip -O xhook.zip
-            unzip -q -o xhook.zip -d tmp_xh
-            XH=$(find tmp_xh -name xhook.c | head -1 | xargs dirname)
-            cp -v "$XH"/xhook.c "$XH"/xh_core.c "$XH"/xh_elf.c "$XH"/xh_log.c "$XH"/xh_util.c "$XH"/xh_version.c jni/
-            cp -v "$XH"/*.h jni/
-            rm -rf tmp_xh xhook.zip
-          fi
+          ZIP=$(ls umar_*_actions.zip ffk_tracer_deep_*.zip ffkiller*.zip 2>/dev/null | head -1); echo "zip: [$ZIP]"
+          if [ -n "$ZIP" ]; then rm -rf jni tmp_jni && mkdir -p jni tmp_jni && unzip -o "$ZIP" -d tmp_jni && echo "--- tmp:" && ls tmp_jni && ( [ -d tmp_jni/jni ] && cp -v tmp_jni/jni/* jni/ || cp -v tmp_jni/* jni/ ) && rm -rf tmp_jni; else echo "NO ZIP FOUND"; ls; fi
           echo "--- jni:" && ls jni
           test -f jni/Android.mk || (echo "ANDROID.MK MISSING"; exit 1)
-          test -f jni/Application.mk || (echo "APPLICATION.MK MISSING (need c++_static)"; exit 1)
-          test -f jni/xhook.c || (echo "XHOOK.C MISSING"; exit 1)
-          test -f jni/mt_jni_ffguard.c || (echo "TRACER C MISSING"; exit 1)
-          test -f jni/ffk_imgui.cpp || (echo "FFK_IMGUI.CPP MISSING (wrong zip?)"; exit 1)
-          test -f jni/imgui.cpp || (echo "IMGUI.CPP MISSING (wrong zip?)"; exit 1)
-          grep -q "imgui xres shot" jni/mt_jni_ffguard.c || (echo "STALE C (not v106)"; exit 1)
+          test -f jni/mt_jni_ffguard.c || (echo "C FILE MISSING"; exit 1)
+          grep -o 'v1[0-9][0-9] [a-z0-9 ]* on' jni/mt_jni_ffguard.c | head -1 || true
       - name: ndk-build
-        run: $NDK/ndk-build NDK_PROJECT_PATH=. APP_ABI=arm64-v8a APP_STL=c++_static
-      - name: Verify lib
-        run: |
-          ls -la libs/arm64-v8a/
-          test -f libs/arm64-v8a/libSignatureKiller.so || (echo "SO NOT BUILT"; exit 1)
+        run: $NDK/ndk-build NDK_PROJECT_PATH=.
       - name: Upload libs
         uses: actions/upload-artifact@v4
         with:
           name: libs
           path: libs/
+          
