@@ -15,7 +15,7 @@ jobs:
       - name: Prepare jni
         run: |
           ZIP=""
-          for z in umar_v106_actions.zip 'umar_v106_actions.zip'; do
+          for z in umar_v107_actions.zip 'umar_v107_actions.zip'; do
             if [ -f "$z" ]; then ZIP="$z"; break; fi
           done
           [ -n "$ZIP" ] || (echo "BUILD ZIP NOT FOUND"; ls -la; exit 1)
