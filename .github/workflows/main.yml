@@ -26,6 +26,9 @@ jobs:
           test -d jni/bh || (echo "BH VENDOR DIR MISSING (stale zip?)"; exit 1)
           test -d jni/sh || (echo "SH VENDOR DIR MISSING (stale zip?)"; exit 1)
           test -f jni/sh/arch/arm64/sh_glue.S || (echo "SH_GLUE.S MISSING"; exit 1)
+          test -f jni/sh/third_party/bsd/tree.h || (echo "TREE.H MISSING (stale zip?)"; exit 1)
+          grep -q 'sh_linker_register_dl_init_callback(bh_task_manager' jni/bh/bh_task_manager.c || (echo "VENDOR PATCH MISSING (stale zip, need v143+)"; exit 1)
+          ! grep -q 'shadowhook_init' jni/mt_jni_ffguard.c || (echo "SHADOWHOOK_INIT STILL PRESENT (stale zip, need v143+)"; exit 1)
           grep -o 'ffkn v[0-9][0-9]* [a-z0-9 ]* on' jni/mt_jni_ffguard.c | head -1 || true
           grep -c 'bhook reg slots' jni/mt_jni_ffguard.c || true
       - name: ndk-build
@@ -35,3 +38,4 @@ jobs:
         with:
           name: libs
           path: libs/
+          
