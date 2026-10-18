@@ -14,17 +14,24 @@ jobs:
           echo "NDK=$PWD/android-ndk-r25c" >> $GITHUB_ENV
       - name: Prepare jni
         run: |
-          ZIP=$(ls umar_*_actions.zip ffk_tracer_deep_*.zip ffkiller*.zip 2>/dev/null | head -1); echo "zip: [$ZIP]"
-          if [ -n "$ZIP" ]; then rm -rf jni tmp_jni && mkdir -p jni tmp_jni && unzip -o "$ZIP" -d tmp_jni && echo "--- tmp:" && ls tmp_jni && ( [ -d tmp_jni/jni ] && cp -v tmp_jni/jni/* jni/ || cp -v tmp_jni/* jni/ ) && rm -rf tmp_jni; else echo "NO ZIP FOUND"; ls; fi
-          echo "--- jni:" && ls jni
+          ZIP=$(ls -1 umar_*_actions.zip 2>/dev/null | sort -V | tail -1)
+          [ -z "$ZIP" ] && ZIP=$(ls -1 ffk_tracer_deep_*.zip ffkiller*.zip 2>/dev/null | sort -V | tail -1)
+          echo "zip: [$ZIP]"
+          if [ -n "$ZIP" ]; then rm -rf jni tmp_jni && mkdir -p jni tmp_jni && unzip -o "$ZIP" -d tmp_jni && echo "--- tmp:" && ls tmp_jni && ( [ -d tmp_jni/jni ] && cp -a tmp_jni/jni/. jni/ || cp -a tmp_jni/. jni/ ) && rm -rf tmp_jni; else echo "NO ZIP FOUND"; ls; fi
+          echo "--- jni file count:" && find jni -type f | wc -l
+          echo "--- jni tree:" && find jni -type f | sort
           test -f jni/Android.mk || (echo "ANDROID.MK MISSING"; exit 1)
+          test -f jni/Application.mk || (echo "APPLICATION.MK MISSING"; exit 1)
           test -f jni/mt_jni_ffguard.c || (echo "C FILE MISSING"; exit 1)
-          grep -o 'v1[0-9][0-9] [a-z0-9 ]* on' jni/mt_jni_ffguard.c | head -1 || true
+          test -d jni/bh || (echo "BH VENDOR DIR MISSING (stale zip?)"; exit 1)
+          test -d jni/sh || (echo "SH VENDOR DIR MISSING (stale zip?)"; exit 1)
+          test -f jni/sh/arch/arm64/sh_glue.S || (echo "SH_GLUE.S MISSING"; exit 1)
+          grep -o 'ffkn v136 [a-z0-9 ]* on' jni/mt_jni_ffguard.c | head -1 || true
+          grep -c 'bhook reg slots' jni/mt_jni_ffguard.c || true
       - name: ndk-build
-        run: $NDK/ndk-build NDK_PROJECT_PATH=.
+        run: $NDK/ndk-build NDK_PROJECT_PATH=. -j$(nproc)
       - name: Upload libs
         uses: actions/upload-artifact@v4
         with:
           name: libs
           path: libs/
-          
