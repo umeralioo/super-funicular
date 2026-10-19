@@ -28,6 +28,17 @@ jobs:
           test -f jni/sh/arch/arm64/sh_glue.S || (echo "SH_GLUE.S MISSING"; exit 1)
           test -f jni/sh/third_party/bsd/tree.h || (echo "TREE.H MISSING (stale zip?)"; exit 1)
           grep -q 'sh_linker_register_dl_init_callback(bh_task_manager' jni/bh/bh_task_manager.c || (echo "VENDOR PATCH MISSING (stale zip, need v143+)"; exit 1)
+          grep -q 'bh_task_report_nosym' jni/bh/bh_task.c || (echo "NOSYM OPT-IN PATCH MISSING (stale zip, need v149+)"; exit 1)
+          # EMIT-INTACT gate (source-presence only): proves both log-line emit statements survived
+          # in the patched source. It says NOTHING about runtime - "zero slot-range-miss/slot-fallback"
+          # is a POST-RUN grep on ffk_native.txt, same class as REP-HIST. Green gate + those lines in
+          # the log = behavior fired, not a stale build.
+          grep -q 'slot-range-miss' jni/mt_jni_ffguard.c || (echo "SLOT-RANGE EMIT MISSING (stale zip, need v152+)"; exit 1)
+          grep -q 'slot-fallback' jni/mt_jni_ffguard.c || (echo "SLOT-FALLBACK EMIT MISSING (stale zip, need v152+)"; exit 1)
+          # EMIT-INTACT (source-presence only, NOT runtime): one grep covering all four crashfix
+          # emissions - snapmaps / sigrep none / sighook / signote. Zero-lines-at-runtime is a
+          # POST-RUN ffk_native.txt grep, same class as REP-HIST/slot-range-miss.
+          grep -E -q 'snapmaps |sigrep none|sighook id=|signote sigctx=' jni/mt_jni_ffguard.c || (echo "CRASHFIX EMIT MISSING (stale zip, need v155+)"; exit 1)
           ! grep -q 'shadowhook_init' jni/mt_jni_ffguard.c || (echo "SHADOWHOOK_INIT STILL PRESENT (stale zip, need v143+)"; exit 1)
           grep -o 'ffkn v[0-9][0-9]* [a-z0-9 ]* on' jni/mt_jni_ffguard.c | head -1 || true
           grep -c 'bhook reg slots' jni/mt_jni_ffguard.c || true
