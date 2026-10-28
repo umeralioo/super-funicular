@@ -1,15 +1,17 @@
 
-name: Build Android native library
+name: Build Android Native Library
 
 on:
   workflow_dispatch:
   push:
     paths:
       - 'jni/**'
+      - 'umar_v155_actions.zip'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
       - 'jni/**'
+      - 'umar_v155_actions.zip'
       - '.github/workflows/build.yml'
 
 jobs:
@@ -19,6 +21,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          if [ ! -f umar_v155_actions.zip ]; then
+            echo "ERROR: umar_v155_actions.zip not found!"
+            exit 1
+          fi
+
+          unzip -o umar_v155_actions.zip -d "$GITHUB_WORKSPACE"
+
+          test -f jni/Android.mk
+          test -f jni/Application.mk
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -32,17 +49,21 @@ jobs:
           packages: platform-tools
 
       - name: Install Android NDK
-        run: sdkmanager --install "ndk;27.2.12479018"
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sdkmanager --install "ndk;27.2.12479018"
 
       - name: Build libffk_pro.so
         shell: bash
         run: |
           set -euxo pipefail
 
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+
           test -f jni/Android.mk
           test -f jni/Application.mk
-
-          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          test -x "$NDK/ndk-build"
 
           "$NDK/ndk-build" \
             NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
