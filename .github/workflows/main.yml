@@ -1,3 +1,4 @@
+
 name: Build Android native library
 
 on:
@@ -14,6 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,23 +28,29 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android NDK
-        run: sdkmanager "ndk;27.2.12479018"
+        run: sdkmanager --install "ndk;27.2.12479018"
 
       - name: Build libffk_pro.so
         shell: bash
         run: |
           set -euxo pipefail
+
           test -f jni/Android.mk
           test -f jni/Application.mk
+
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
+
           "$NDK/ndk-build" \
             NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
             APP_BUILD_SCRIPT="$GITHUB_WORKSPACE/jni/Android.mk" \
             NDK_APPLICATION_MK="$GITHUB_WORKSPACE/jni/Application.mk" \
             NDK_OUT="$RUNNER_TEMP/ndk-obj" \
             NDK_LIBS_OUT="$RUNNER_TEMP/ndk-libs"
+
           test -f "$RUNNER_TEMP/ndk-libs/arm64-v8a/libffk_pro.so"
 
       - name: Upload native library
