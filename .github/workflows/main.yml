@@ -5,12 +5,12 @@ on:
   push:
     paths:
       - 'jni/**'
-      - 'umar_v165_actions.zip'
+      - 'umar_v155_actions.zip'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
       - 'jni/**'
-      - 'umar_v165_actions.zip'
+      - 'umar_v155_actions.zip'
       - '.github/workflows/build.yml'
 
 jobs:
@@ -26,11 +26,7 @@ jobs:
         run: |
           set -euxo pipefail
 
-          if [ ! -f umar_v165_actions.zip ]; then
-            echo "ERROR: umar_v155_actions.zip not found"
-            exit 1
-          fi
-
+          test -f umar_v165_actions.zip
           unzip -o umar_v165_actions.zip -d "$GITHUB_WORKSPACE"
 
           test -f jni/Android.mk
@@ -53,19 +49,24 @@ jobs:
           set -euxo pipefail
           sdkmanager --install "ndk;27.2.12479018"
 
-      - name: Find missing queue.h
+      - name: Diagnose ELF function declarations
         shell: bash
         run: |
-          echo "Searching for queue.h..."
-          find "$GITHUB_WORKSPACE" \
-            -type f -iname 'queue.h' -print
+          echo "Searching for function declarations and definitions..."
 
-          echo "Checking source includes..."
-          sed -n '35,55p' jni/ffk_imgui.cpp
+          grep -RInE \
+            'bh_task_hook_elf|bh_elf_manager_iterate|bh_elf_manager_refresh' \
+            jni \
+            --include='*.h' \
+            --include='*.hpp' \
+            --include='*.c' \
+            --include='*.cpp' || true
 
-          echo "Checking nearby header files..."
-          find jni -maxdepth 4 -type f \
-            \( -name '*.h' -o -name '*.hpp' \) -print
+          echo "Checking first failing source section..."
+          sed -n '1215,1250p' jni/ffk_pro.c
+
+          echo "Checking second failing source section..."
+          sed -n '1420,1450p' jni/ffk_pro.c
 
       - name: Build libffk_pro.so
         shell: bash
