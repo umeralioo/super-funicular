@@ -1,4 +1,3 @@
-
 name: Build Android Native Library
 
 on:
@@ -28,7 +27,7 @@ jobs:
           set -euxo pipefail
 
           if [ ! -f umar_v155_actions.zip ]; then
-            echo "ERROR: umar_v155_actions.zip not found!"
+            echo "ERROR: umar_v155_actions.zip not found"
             exit 1
           fi
 
@@ -54,6 +53,20 @@ jobs:
           set -euxo pipefail
           sdkmanager --install "ndk;27.2.12479018"
 
+      - name: Find missing queue.h
+        shell: bash
+        run: |
+          echo "Searching for queue.h..."
+          find "$GITHUB_WORKSPACE" \
+            -type f -iname 'queue.h' -print
+
+          echo "Checking source includes..."
+          sed -n '35,55p' jni/ffk_imgui.cpp
+
+          echo "Checking nearby header files..."
+          find jni -maxdepth 4 -type f \
+            \( -name '*.h' -o -name '*.hpp' \) -print
+
       - name: Build libffk_pro.so
         shell: bash
         run: |
@@ -63,7 +76,6 @@ jobs:
 
           test -f jni/Android.mk
           test -f jni/Application.mk
-          test -x "$NDK/ndk-build"
 
           "$NDK/ndk-build" \
             NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
