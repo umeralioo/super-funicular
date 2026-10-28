@@ -1,53 +1,54 @@
-name: Acernis-v155 Tracer NDK Build
+name: Build Android native library
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
+    paths:
+      - 'jni/**'
+      - '.github/workflows/build.yml'
   pull_request:
-    branches: [ main ]
+    paths:
+      - 'jni/**'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup jdk 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-    - name: Setup android ndk
-      uses: nttld/setup-ndk@v1
-      with:
-        ndk-version: r25c
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-    - name: Cache NDK
-      uses: actions/cache@v4
-      with:
-        path: /opt/hostedtoolcache/ndk
-        key: ndk-r25c
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
 
-    - name: Print build env
-      run: env | grep -E 'ANDROID|NDK|JAVA'
+      - name: Build libffk_pro.so
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -f jni/Android.mk
+          test -f jni/Application.mk
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          "$NDK/ndk-build" \
+            NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
+            APP_BUILD_SCRIPT="$GITHUB_WORKSPACE/jni/Android.mk" \
+            NDK_APPLICATION_MK="$GITHUB_WORKSPACE/jni/Application.mk" \
+            NDK_OUT="$RUNNER_TEMP/ndk-obj" \
+            NDK_LIBS_OUT="$RUNNER_TEMP/ndk-libs"
+          test -f "$RUNNER_TEMP/ndk-libs/arm64-v8a/libffk_pro.so"
 
-    - name: Build libffk.pro.so
-      run: |
-        export ANDROID_PLATFORM=android-19
-        cd android
-        mkdir -p src/jni
-        cat > src/jni/Android.mk << EOF
-          LOCAL_PATH := \$(call my-dir)
-          include \$(CLEAR_VARS)
-          LOCAL_MODULE := ffk
-          LOCAL_SRC_FILES := ffk.c
-          include \$(BUILD_SHARED_LIBRARY)
-        EOF
-        ./gradlew :app:build --no-daemon
-
-    - name: Upload libffk.pro.so
-      uses: actions/upload-artifact@v4
-      with:
-        name: libffk.pro.so
-        path: android/app/build/intermediates/ndkBuild/release/obj/local/arm64-v8a/libffk.pro.so
+      - name: Upload native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: libffk_pro
+          path: ${{ runner.temp }}/ndk-libs/arm64-v8a/libffk_pro.so
+          if-no-files-found: error
+          
