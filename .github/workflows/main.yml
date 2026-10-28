@@ -36,16 +36,14 @@ jobs:
       run: |
         export ANDROID_PLATFORM=android-19
         cd android
-        if [ ! -f src/jni/Android.mk ]; then
-          mkdir -p src/jni
-          cat > src/jni/Android.mk << EOF
-            LOCAL_PATH := \$(call my-dir)
-            include \$(CLEAR_VARS)
-            LOCAL_MODULE := ffk
-            LOCAL_SRC_FILES := ffk.c
-            include \$(BUILD_SHARED_LIBRARY)
-          EOF
-        fi
+        mkdir -p src/jni
+        cat > src/jni/Android.mk << EOF
+          LOCAL_PATH := \$(call my-dir)
+          include \$(CLEAR_VARS)
+          LOCAL_MODULE := ffk
+          LOCAL_SRC_FILES := ffk.c
+          include \$(BUILD_SHARED_LIBRARY)
+        EOF
         ./gradlew :app:build --no-daemon
 
     - name: Upload libffk.pro.so
