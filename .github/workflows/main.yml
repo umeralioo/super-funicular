@@ -26,7 +26,7 @@ jobs:
         run: |
           set -euxo pipefail
 
-          if [ ! -f umar_v155_actions.zip ]; then
+          if [ ! -f umar_v165_actions.zip ]; then
             echo "ERROR: umar_v155_actions.zip not found"
             exit 1
           fi
