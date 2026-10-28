@@ -10,7 +10,7 @@ on:
   pull_request:
     paths:
       - 'jni/**'
-      - 'umar_v155_actions.zip'
+      - 'umar_v165_actions.zip'
       - '.github/workflows/build.yml'
 
 jobs:
