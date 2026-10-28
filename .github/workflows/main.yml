@@ -35,8 +35,18 @@ jobs:
     - name: Build libffk.pro.so
       run: |
         export ANDROID_PLATFORM=android-19
-        export APP_BUILD_SCRIPT=src/Android.mk
-        cd android && ./gradlew :app:build --no-daemon
+        cd android
+        if [ ! -f src/jni/Android.mk ]; then
+          mkdir -p src/jni
+          cat > src/jni/Android.mk << EOF
+            LOCAL_PATH := \$(call my-dir)
+            include \$(CLEAR_VARS)
+            LOCAL_MODULE := ffk
+            LOCAL_SRC_FILES := ffk.c
+            include \$(BUILD_SHARED_LIBRARY)
+          EOF
+        fi
+        ./gradlew :app:build --no-daemon
 
     - name: Upload libffk.pro.so
       uses: actions/upload-artifact@v4
