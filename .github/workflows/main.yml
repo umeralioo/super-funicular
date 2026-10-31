@@ -5,12 +5,12 @@ on:
   push:
     paths:
       - 'jni/**'
-      - 'umar_v165_actions.zip'
+      - 'umar_v175_actions.zip'
       - '.github/workflows/build.yml'
   pull_request:
     paths:
       - 'jni/**'
-      - 'umar_v165_actions.zip'
+      - 'umar_v175_actions.zip'
       - '.github/workflows/build.yml'
 
 jobs:
@@ -26,8 +26,8 @@ jobs:
         run: |
           set -euxo pipefail
 
-          test -f umar_v165_actions.zip
-          unzip -o umar_v165_actions.zip -d "$GITHUB_WORKSPACE"
+          test -f umar_v175_actions.zip
+          unzip -o umar_v175_actions.zip -d "$GITHUB_WORKSPACE"
 
           test -f jni/Android.mk
           test -f jni/Application.mk
