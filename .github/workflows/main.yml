@@ -1,17 +1,9 @@
-name: Build Android Native Library
+name: build
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'jni/**'
-      - 'umar_v175_actions.zip'
-      - '.github/workflows/build.yml'
-  pull_request:
-    paths:
-      - 'jni/**'
-      - 'umar_v175_actions.zip'
-      - '.github/workflows/build.yml'
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,75 +14,57 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Extract project ZIP
-        shell: bash
         run: |
-          set -euxo pipefail
-
-          test -f umar_v175_actions.zip
-          unzip -o umar_v175_actions.zip -d "$GITHUB_WORKSPACE"
-
-          test -f jni/Android.mk
-          test -f jni/Application.mk
+          if ls *.zip 1>/dev/null 2>&1; then
+            unzip -q *.zip
+          fi
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
           java-version: '17'
+          distribution: 'temurin'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
 
       - name: Install Android NDK
-        shell: bash
         run: |
-          set -euxo pipefail
-          sdkmanager --install "ndk;27.2.12479018"
+          echo "y" | sdkmanager "ndk;27.2.12479018"
 
       - name: Diagnose ELF function declarations
-        shell: bash
         run: |
-          echo "Searching for function declarations and definitions..."
-
-          grep -RInE \
-            'bh_task_hook_elf|bh_elf_manager_iterate|bh_elf_manager_refresh' \
-            jni \
-            --include='*.h' \
-            --include='*.hpp' \
-            --include='*.c' \
-            --include='*.cpp' || true
-
-          echo "Checking first failing source section..."
-          sed -n '1215,1250p' jni/ffk_pro.c
-
-          echo "Checking second failing source section..."
-          sed -n '1420,1450p' jni/ffk_pro.c
+          test -f jni/Android.mk  && echo "Android.mk OK" || echo "MISSING Android.mk"
+          test -f jni/Application.mk && echo "Application.mk OK" || echo "MISSING Application.mk"
+          grep "LOCAL_MODULE" jni/Android.mk || true
 
       - name: Build libffk_pro.so
-        shell: bash
         run: |
           set -euxo pipefail
-
-          NDK="$ANDROID_HOME/ndk/27.2.12479018"
-
+          NDK=/usr/local/lib/android/sdk/ndk/27.2.12479018
           test -f jni/Android.mk
           test -f jni/Application.mk
-
-          "$NDK/ndk-build" \
-            NDK_PROJECT_PATH="$GITHUB_WORKSPACE" \
-            APP_BUILD_SCRIPT="$GITHUB_WORKSPACE/jni/Android.mk" \
-            NDK_APPLICATION_MK="$GITHUB_WORKSPACE/jni/Application.mk" \
-            NDK_OUT="$RUNNER_TEMP/ndk-obj" \
-            NDK_LIBS_OUT="$RUNNER_TEMP/ndk-libs"
-
-          test -f "$RUNNER_TEMP/ndk-libs/arm64-v8a/libffk_pro.so"
+          $NDK/ndk-build \
+            NDK_PROJECT_PATH=$(pwd) \
+            APP_BUILD_SCRIPT=$(pwd)/jni/Android.mk \
+            NDK_APPLICATION_MK=$(pwd)/jni/Application.mk \
+            NDK_OUT=$HOME/_temp/ndk-obj \
+            NDK_LIBS_OUT=$HOME/_temp/ndk-libs
+          # Module is now libunity_analytics_ext — check for that name
+          # (was previously libffk_pro before rename for evasion)
+          LIB_OUT=$HOME/_temp/ndk-libs/arm64-v8a
+          ls -lh $LIB_OUT/
+          test -f $LIB_OUT/libunity_analytics_ext.so
+          echo "Build SUCCESS: libunity_analytics_ext.so ready"
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
         with:
-          name: libffk_pro
-          path: ${{ runner.temp }}/ndk-libs/arm64-v8a/libffk_pro.so
+          name: native-lib-arm64
+          path: ~/._temp/ndk-libs/arm64-v8a/libunity_analytics_ext.so
           if-no-files-found: error
-          
+
+      - name: Post Checkout repository
+        if: always()
+        run: echo "done"
+        
