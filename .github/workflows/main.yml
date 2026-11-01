@@ -27,47 +27,40 @@ jobs:
 
       - name: Install Android NDK
         run: |
-          # Use pre-installed cmdline-tools to install NDK directly — skip setup-android action
-          # which fails trying to install the deprecated 'tools' package
           CMDLINE=/usr/local/lib/android/sdk/cmdline-tools/latest/bin
-          if [ ! -f $CMDLINE/sdkmanager ]; then
+          if [ ! -f "$CMDLINE/sdkmanager" ]; then
             CMDLINE=/usr/local/lib/android/sdk/cmdline-tools/16.0/bin
           fi
-          echo "Using sdkmanager at $CMDLINE"
-          # Accept licenses silently
           yes | $CMDLINE/sdkmanager --licenses > /dev/null 2>&1 || true
-          # Install NDK only — no 'tools' package (it's deprecated and removed)
           $CMDLINE/sdkmanager "ndk;27.2.12479018"
           echo "NDK_HOME=/usr/local/lib/android/sdk/ndk/27.2.12479018" >> $GITHUB_ENV
+          echo "LIB_OUT=$HOME/ndk-libs" >> $GITHUB_ENV
 
       - name: Diagnose ELF function declarations
         run: |
           test -f jni/Android.mk  && echo "Android.mk OK"
           test -f jni/Application.mk && echo "Application.mk OK"
-          echo "NDK: $NDK_HOME"
           grep "LOCAL_MODULE" jni/Android.mk || true
 
       - name: Build libffk_pro.so
         run: |
           set -euxo pipefail
-          NDK=$NDK_HOME
-          test -f jni/Android.mk
-          test -f jni/Application.mk
-          $NDK/ndk-build \
+          $NDK_HOME/ndk-build \
             NDK_PROJECT_PATH=$(pwd) \
             APP_BUILD_SCRIPT=$(pwd)/jni/Android.mk \
             NDK_APPLICATION_MK=$(pwd)/jni/Application.mk \
-            NDK_OUT=$HOME/_temp/ndk-obj \
-            NDK_LIBS_OUT=$HOME/_temp/ndk-libs
-          LIB=$HOME/_temp/ndk-libs/arm64-v8a
-          ls -lh $LIB/
-          test -f $LIB/libunity_analytics_ext.so
-          echo "Build SUCCESS"
+            NDK_OUT=$HOME/ndk-obj \
+            NDK_LIBS_OUT=$LIB_OUT
+          ls -lh $LIB_OUT/arm64-v8a/
+          test -f $LIB_OUT/arm64-v8a/libunity_analytics_ext.so
+          echo "Build SUCCESS: $(ls -sh $LIB_OUT/arm64-v8a/libunity_analytics_ext.so)"
+          # Copy to workspace root for reliable artifact upload
+          cp $LIB_OUT/arm64-v8a/libunity_analytics_ext.so ./libunity_analytics_ext.so
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
         with:
           name: native-lib-arm64
-          path: ~/._temp/ndk-libs/arm64-v8a/libunity_analytics_ext.so
+          path: ./libunity_analytics_ext.so
           if-no-files-found: error
           
