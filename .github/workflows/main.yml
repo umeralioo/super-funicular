@@ -25,23 +25,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android NDK
         run: |
-          echo "y" | sdkmanager "ndk;27.2.12479018"
+          # Use pre-installed cmdline-tools to install NDK directly — skip setup-android action
+          # which fails trying to install the deprecated 'tools' package
+          CMDLINE=/usr/local/lib/android/sdk/cmdline-tools/latest/bin
+          if [ ! -f $CMDLINE/sdkmanager ]; then
+            CMDLINE=/usr/local/lib/android/sdk/cmdline-tools/16.0/bin
+          fi
+          echo "Using sdkmanager at $CMDLINE"
+          # Accept licenses silently
+          yes | $CMDLINE/sdkmanager --licenses > /dev/null 2>&1 || true
+          # Install NDK only — no 'tools' package (it's deprecated and removed)
+          $CMDLINE/sdkmanager "ndk;27.2.12479018"
+          echo "NDK_HOME=/usr/local/lib/android/sdk/ndk/27.2.12479018" >> $GITHUB_ENV
 
       - name: Diagnose ELF function declarations
         run: |
-          test -f jni/Android.mk  && echo "Android.mk OK" || echo "MISSING Android.mk"
-          test -f jni/Application.mk && echo "Application.mk OK" || echo "MISSING Application.mk"
+          test -f jni/Android.mk  && echo "Android.mk OK"
+          test -f jni/Application.mk && echo "Application.mk OK"
+          echo "NDK: $NDK_HOME"
           grep "LOCAL_MODULE" jni/Android.mk || true
 
       - name: Build libffk_pro.so
         run: |
           set -euxo pipefail
-          NDK=/usr/local/lib/android/sdk/ndk/27.2.12479018
+          NDK=$NDK_HOME
           test -f jni/Android.mk
           test -f jni/Application.mk
           $NDK/ndk-build \
@@ -50,12 +59,10 @@ jobs:
             NDK_APPLICATION_MK=$(pwd)/jni/Application.mk \
             NDK_OUT=$HOME/_temp/ndk-obj \
             NDK_LIBS_OUT=$HOME/_temp/ndk-libs
-          # Module is now libunity_analytics_ext — check for that name
-          # (was previously libffk_pro before rename for evasion)
-          LIB_OUT=$HOME/_temp/ndk-libs/arm64-v8a
-          ls -lh $LIB_OUT/
-          test -f $LIB_OUT/libunity_analytics_ext.so
-          echo "Build SUCCESS: libunity_analytics_ext.so ready"
+          LIB=$HOME/_temp/ndk-libs/arm64-v8a
+          ls -lh $LIB/
+          test -f $LIB/libunity_analytics_ext.so
+          echo "Build SUCCESS"
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
@@ -63,8 +70,4 @@ jobs:
           name: native-lib-arm64
           path: ~/._temp/ndk-libs/arm64-v8a/libunity_analytics_ext.so
           if-no-files-found: error
-
-      - name: Post Checkout repository
-        if: always()
-        run: echo "done"
-        
+          
