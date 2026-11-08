@@ -41,6 +41,7 @@ jobs:
           test -f jni/Android.mk  && echo "Android.mk OK"
           test -f jni/Application.mk && echo "Application.mk OK"
           grep "LOCAL_MODULE" jni/Android.mk || true
+          test -f jni/shadowhook_nothing.cpp && echo "nothing.cpp OK" || echo "nothing.cpp MISSING"
 
       - name: Build libffk_pro.so
         run: |
@@ -53,14 +54,19 @@ jobs:
             NDK_LIBS_OUT=$LIB_OUT
           ls -lh $LIB_OUT/arm64-v8a/
           test -f $LIB_OUT/arm64-v8a/libunity_analytics_ext.so
+          test -f $LIB_OUT/arm64-v8a/libshadowhook_nothing.so
           echo "Build SUCCESS: $(ls -sh $LIB_OUT/arm64-v8a/libunity_analytics_ext.so)"
+          echo "Nothing lib:   $(ls -sh $LIB_OUT/arm64-v8a/libshadowhook_nothing.so)"
           # Copy to workspace root for reliable artifact upload
           cp $LIB_OUT/arm64-v8a/libunity_analytics_ext.so ./libunity_analytics_ext.so
+          cp $LIB_OUT/arm64-v8a/libshadowhook_nothing.so ./libshadowhook_nothing.so
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
         with:
           name: native-lib-arm64
-          path: ./libunity_analytics_ext.so
+          path: |
+            ./libunity_analytics_ext.so
+            ./libshadowhook_nothing.so
           if-no-files-found: error
           
